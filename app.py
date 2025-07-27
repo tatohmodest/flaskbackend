@@ -138,120 +138,32 @@ def token_required(f):
     return decorated
 
 # Voice processing utilities
-try:
-    import speech_recognition as sr
-    SPEECH_RECOGNITION_AVAILABLE = True
-except ImportError:
-    SPEECH_RECOGNITION_AVAILABLE = False
-    print("Warning: speech_recognition not available, using alternative methods")
-
-# Alternative: Use Google Cloud Speech-to-Text directly
-try:
-    from google.cloud import speech as google_speech
-    GOOGLE_SPEECH_AVAILABLE = True
-except ImportError:
-    GOOGLE_SPEECH_AVAILABLE = False
-
 class VoiceProcessor:
     def __init__(self):
-        if SPEECH_RECOGNITION_AVAILABLE:
-            self.recognizer = sr.Recognizer()
-        self.use_google_cloud = GOOGLE_SPEECH_AVAILABLE and os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        self.recognizer = sr.Recognizer()
     
     def convert_audio_format(self, audio_file_path):
         """Convert audio to WAV format for better compatibility"""
         try:
             audio = AudioSegment.from_file(audio_file_path)
             wav_path = audio_file_path.replace(os.path.splitext(audio_file_path)[1], '.wav')
-            # Convert to mono, 16kHz for better compatibility
-            audio = audio.set_frame_rate(16000).set_channels(1)
             audio.export(wav_path, format="wav")
             return wav_path
         except Exception as e:
             raise Exception(f"Audio conversion failed: {str(e)}")
     
-    def speech_to_text_google_cloud(self, audio_file_path):
-        """Convert speech to text using Google Cloud Speech-to-Text API"""
-        if not self.use_google_cloud:
-            raise Exception("Google Cloud Speech-to-Text not configured")
-        
-        try:
-            client = google_speech.SpeechClient()
-            
-            wav_path = self.convert_audio_format(audio_file_path)
-            
-            with open(wav_path, 'rb') as audio_file:
-                content = audio_file.read()
-            
-            audio = google_speech.RecognitionAudio(content=content)
-            config = google_speech.RecognitionConfig(
-                encoding=google_speech.RecognitionConfig.AudioEncoding.LINEAR16,
-                sample_rate_hertz=16000,
-                language_code="en-US",
-            )
-            
-            response = client.recognize(config=config, audio=audio)
-            
-            if response.results:
-                return response.results[0].alternatives[0].transcript
-            else:
-                raise Exception("No speech detected in audio")
-                
-        except Exception as e:
-            raise Exception(f"Google Cloud Speech-to-Text failed: {str(e)}")
-    
-    def speech_to_text_web_api(self, audio_file_path):
-        """Fallback: Convert speech to text using web-based API"""
-        import requests
-        
-        try:
-            wav_path = self.convert_audio_format(audio_file_path)
-            
-            # You can use services like AssemblyAI, Rev.ai, or others
-            # Here's an example with a hypothetical web API
-            
-            with open(wav_path, 'rb') as audio_file:
-                files = {'audio': audio_file}
-                
-                # Replace with your preferred speech-to-text service
-                # This is just an example structure
-                response = requests.post(
-                    'https://api.your-speech-service.com/transcribe',
-                    files=files,
-                    headers={'Authorization': f'Bearer {os.environ.get("SPEECH_API_KEY")}'}
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    return result.get('transcript', '')
-                else:
-                    raise Exception(f"API request failed: {response.status_code}")
-                    
-        except Exception as e:
-            raise Exception(f"Web API speech-to-text failed: {str(e)}")
-    
     def speech_to_text(self, audio_file_path):
-        """Convert speech to text using available methods"""
+        """Convert speech to text using speech_recognition library"""
         try:
-            # Try Google Cloud Speech first if available
-            if self.use_google_cloud:
-                return self.speech_to_text_google_cloud(audio_file_path)
+            wav_path = self.convert_audio_format(audio_file_path)
             
-            # Try speech_recognition library if available
-            if SPEECH_RECOGNITION_AVAILABLE:
-                wav_path = self.convert_audio_format(audio_file_path)
-                
-                with sr.AudioFile(wav_path) as source:
-                    audio_data = self.recognizer.record(source)
-                    text = self.recognizer.recognize_google(audio_data)
-                    return text
-            
-            # Fallback to web API
-            return self.speech_to_text_web_api(audio_file_path)
-            
-        except sr.UnknownValueError if SPEECH_RECOGNITION_AVAILABLE else Exception:
+            with sr.AudioFile(wav_path) as source:
+                audio_data = self.recognizer.record(source)
+                text = self.recognizer.recognize_google(audio_data)
+                return text
+        except sr.UnknownValueError:
             raise Exception("Could not understand audio")
-        except sr.RequestError as e if SPEECH_RECOGNITION_AVAILABLE else Exception as e:
+        except sr.RequestError as e:
             raise Exception(f"Speech recognition service error: {str(e)}")
         except Exception as e:
             raise Exception(f"Speech to text conversion failed: {str(e)}")
@@ -307,8 +219,8 @@ class VoiceProcessor:
                 "action": f"Failed to process command: {str(e)}"
             }
 
-# Initialize voice processor
 voice_processor = VoiceProcessor()
+
 # User Authentication Routes
 @app.route('/api/auth/register', methods=['POST'])
 def register():
