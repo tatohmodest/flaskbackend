@@ -1,0 +1,10 @@
+Flask==3.0.0
+Flask-CORS==4.0.0
+supabase==2.3.0
+google-generativeai==0.3.2
+google-cloud-speech==2.21.0
+SpeechRecognition==3.10.0
+pydub==0.25.1
+PyJWT==2.8.0
+Werkzeug==3.0.1
+python-dotenv==1.0.0
