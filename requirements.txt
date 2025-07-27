@@ -8,3 +8,26 @@ pydub==0.25.1
 PyJWT==2.8.0
 Werkzeug==3.0.1
 python-dotenv==1.0.0
+
+Flask==3.0.0
+Flask-CORS==4.0.0
+Werkzeug==3.0.1
+PyJWT==2.8.0
+supabase==2.3.4
+google-generativeai==0.3.2
+google-cloud-speech==2.21.0
+pydub==0.25.1
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Alternative speech recognition (more compatible)
+SpeechRecognition==3.10.0; python_version<"3.12"
+
+# Audio processing
+ffmpeg-python==0.2.0
+
+# For CSV export
+pandas==2.1.4
+
+# Optional: For better audio format support
+librosa==0.10.1
